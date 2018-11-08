@@ -1,0 +1,7 @@
+---
+- hosts: glusternodes
+  become: true
+  become_user: root
+
+  roles:
+  - { role: gluster-setup }

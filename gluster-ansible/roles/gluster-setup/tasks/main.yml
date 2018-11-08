@@ -1,0 +1,140 @@
+---
+
+- name: install epel
+  yum:
+    name: epel-release
+    state: latest
+
+- name: install gluster repos
+  yum:
+    name: centos-release-gluster41
+    state: latest
+
+- name: Install all basic packages
+  yum:
+    name:
+      #- open-vm-tools 
+      - htop
+      - bmon
+      - vim 
+      - chrony
+      - glusterfs-server
+      - glusterfs-api
+      - nfs-ganesha 
+      - nfs-ganesha-gluster 
+      - nfs-ganesha-utils 
+    state: present
+
+
+- name: install storhaug-nfs
+  yum:
+    name: storhaug-nfs
+    state: latest
+
+- name: Add mappings to /etc/hosts
+  blockinfile:
+    dest: /etc/hosts
+    block: |
+      {{ item.ip }} {{ item.name }}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name }}"
+  with_items:
+    - "{{ hosts_file }}"
+  tags: hosts
+
+- name: Creates /etc/sysconfig/storhaug.d
+  file:
+    path: /etc/sysconfig/storhaug.d
+    state: directory
+
+- name: Create ln -s /usr/sbin/storhaug /usr/bin/storhaug
+  file:
+    src: /usr/sbin/storhaug
+    dest: /usr/bin/storhaug
+    state: link
+
+# Put SELinux in permissive mode, logging actions that would be blocked.
+- name: configuring selinux
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: disable firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+    masked: yes
+
+- name: disable NetworkManager
+  systemd:
+    name: NetworkManager
+    state: stopped
+    masked: yes
+
+- name: disable postfix
+  systemd:
+    name: postfix
+    state: stopped
+    masked: yes
+
+- name: disable NetworkManager-wait-online
+  systemd:
+    name: NetworkManager-wait-online
+    state: stopped
+    masked: yes
+
+- name: enable glusterd --now
+  systemd:
+    name: glusterd
+    state: started
+    enabled: yes
+
+- name: enable chronyd --now
+  systemd:
+    name: chronyd
+    state: started
+    enabled: yes
+
+- name: enable glusterd
+  systemd:
+    name: ctdb
+    enabled: yes
+
+- name: enable nfs-ganesha 
+  systemd:
+    name: nfs-ganesha
+    enabled: yes
+
+#- name: enable vmtoolsd --now
+#  systemd:
+#    name: vmtoolsd
+#    state: started
+#    enabled: yes
+
+
+- name: remove ganesha.conf on workers
+  file:
+    path: /etc/ganesha/ganesha.conf
+    state: absent
+  when: inventory_hostname in groups['gluster-workers']
+
+- name: Create /etc/ctdb/nodes
+  file:
+    path: /etc/ctdb/nodes
+    state: touch
+  when: inventory_hostname in groups['gluster-master']
+
+- name: Add mappings to /etc/ctdb/nodes 
+  blockinfile:
+    dest: /etc/ctdb/nodes
+    block: |
+      {{ item.ip }}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name }}"
+  with_items:
+    - "{{ ctdb_nodes }}"
+  tags: ctdbnodes
+  when: inventory_hostname in groups['gluster-master']
+
+#- name: debug_nodes
+#  debug:
+#    msg: "{{ ctdb_nodes }}"
+#  tags: ctdbnodesdebug

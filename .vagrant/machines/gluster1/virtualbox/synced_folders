@@ -1,0 +1,1 @@
+{"rsync":{"/vagrant":{"type":"rsync","guestpath":"/vagrant","hostpath":"C:/Users/home/Documents/Projects/vagrant_vm/gluster","disabled":false,"__vagrantfile":true,"owner":"vagrant","group":"vagrant"}}}

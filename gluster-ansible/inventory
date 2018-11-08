@@ -1,0 +1,10 @@
+[gluster-master]
+gluster1
+
+[gluster-workers]
+gluster2
+gluster3
+
+[glusternodes:children]
+gluster-master
+gluster-workers
